@@ -15,14 +15,11 @@ const eslintConfig = [
     "next/typescript",
     "plugin:unicorn/recommended",
     "plugin:import/recommended",
-    "plugin:tailwindcss/recommended",
   ),
   {
     rules: {
       "simple-import-sort/exports": "error",
       "simple-import-sort/imports": "error",
-      "tailwindcss/classnames-order": "error",
-      "tailwindcss/no-custom-classname": "off",
       "unicorn/no-array-callback-reference": "off",
       "unicorn/no-array-for-each": "off",
       "unicorn/no-array-reduce": "off",
@@ -44,7 +41,7 @@ const eslintConfig = [
     },
   },
   {
-    plugins: ["simple-import-sort", "tailwindcss"],
+    plugins: ["simple-import-sort"],
   },
 ]
 
