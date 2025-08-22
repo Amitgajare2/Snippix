@@ -12,6 +12,7 @@ import { toast } from "react-hot-toast";
 import { toBlob, toPng, toSvg } from "html-to-image";
 import { usePreferencesStore } from "@/store/use-preferences-store";
 import { useHotkeys } from "react-hotkeys-hook";
+import { fonts } from "@/options";
 
 export default function ExportOptions({
   targetRef,
@@ -19,15 +20,54 @@ export default function ExportOptions({
   targetRef: React.RefObject<HTMLDivElement>;
 }) {
   const title = usePreferencesStore((state) => state.title);
+  const fontStyle = usePreferencesStore((state) => state.fontStyle);
+
+  // Function to ensure fonts are loaded before export
+  const ensureFontsLoaded = async () => {
+    const currentFont = fonts[fontStyle as keyof typeof fonts];
+    if (currentFont && currentFont.src) {
+      try {
+        // Create a temporary link element to load the font
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = currentFont.src;
+        link.crossOrigin = 'anonymous';
+        
+        // Wait for the font to load
+        await new Promise((resolve, reject) => {
+          link.onload = resolve;
+          link.onerror = reject;
+          document.head.appendChild(link);
+        });
+        
+        // Wait a bit more to ensure font rendering
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.warn('Font loading failed, proceeding with export:', error);
+      }
+    }
+  };
+
+  // Common options for html-to-image to preserve fonts and quality
+  const exportOptions = { 
+    pixelRatio: 2, 
+    cacheBust: true,
+    // Ensure fonts are embedded
+    fontEmbedCSS: true,
+    useCORS: true,
+    // Add quality options
+    quality: 1.0
+  };
 
   const copyImage = async () => {
     const loading = toast.loading("Copying...");
 
     try {
+      // Ensure fonts are loaded before export
+      await ensureFontsLoaded();
+      
       // generate blob from DOM node using html-to-image library
-      const imgBlob = await toBlob(targetRef.current, {
-        pixelRatio: 2,
-      });
+      const imgBlob = await toBlob(targetRef.current, exportOptions);
 
       // Create a new ClipboardItem from the image blob
       const img = new ClipboardItem({ "image/png": imgBlob as Blob });
@@ -70,14 +110,17 @@ export default function ExportOptions({
     const loading = toast.loading(`Exporting ${format} image...`);
 
     try {
+      // Ensure fonts are loaded before export
+      await ensureFontsLoaded();
+      
       let imgUrl, filename;
       switch (format) {
         case "PNG":
-          imgUrl = await toPng(targetRef.current, { pixelRatio: 2 });
+          imgUrl = await toPng(targetRef.current, exportOptions);
           filename = `${name}.png`;
           break;
         case "SVG":
-          imgUrl = await toSvg(targetRef.current, { pixelRatio: 2 });
+          imgUrl = await toSvg(targetRef.current, exportOptions);
           filename = `${name}.svg`;
           break;
 
