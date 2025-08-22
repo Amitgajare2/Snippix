@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRef } from "react";
-import { useState } from "react";
 import { usePreferencesStore } from "@/store/use-preferences-store";
 import { fonts } from "@/options";
 import { themes } from "@/options";
@@ -25,7 +24,9 @@ import ExportOptions from "@/components/controls/ExportOptions";
 function App() {
   const [width, setWidth] = useState("auto");
   const [showWidth, setShowWidth] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
+  const store = usePreferencesStore();
   const theme = usePreferencesStore((state) => state.theme);
   const padding = usePreferencesStore((state) => state.padding);
   const fontStyle = usePreferencesStore((state) => state.fontStyle);
@@ -33,20 +34,57 @@ function App() {
 
   const editorRef = useRef(null);
 
+  // Ensure we're on the client side
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
     const queryParams = new URLSearchParams(location.search);
     if (queryParams.size === 0) return;
+    
     const state = Object.fromEntries(queryParams);
+    
+    // Use the store's setter methods instead of direct setState
+    if (state.code) {
+      store.setCode(atob(state.code));
+    }
+    if (state.autoDetectLanguage !== undefined) {
+      store.setAutoDetectLanguage(state.autoDetectLanguage === "true");
+    }
+    if (state.darkMode !== undefined) {
+      store.setDarkMode(state.darkMode === "true");
+    }
+    if (state.fontSize) {
+      store.setFontSize(Number(state.fontSize));
+    }
+    if (state.padding) {
+      store.setPadding(Number(state.padding));
+    }
+    if (state.language) {
+      store.setLanguage(state.language);
+    }
+    if (state.title) {
+      store.setTitle(state.title);
+    }
+    if (state.theme) {
+      store.setTheme(state.theme);
+    }
+    if (state.fontStyle) {
+      store.setFontStyle(state.fontStyle);
+    }
+  }, [isClient, store]);
 
-    usePreferencesStore.setState({
-      ...state,
-      code: state.code ? atob(state.code) : "",
-      autoDetectLanguage: state.autoDetectLanguage === "true",
-      darkMode: state.darkMode === "true",
-      fontSize: Number(state.fontSize || 18),
-      padding: Number(state.padding || 64),
-    });
-  }, []);
+  // Don't render until we're on the client side
+  if (!isClient) {
+    return (
+      <main className="dark min-h-screen flex flex-col gap-4 justify-center items-center bg-neutral-950 text-white p-4">
+        <div className="animate-pulse">Loading...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="dark min-h-screen flex flex-col gap-4 justify-center items-center bg-neutral-950 text-white p-4">
