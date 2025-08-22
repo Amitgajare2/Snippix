@@ -39,7 +39,9 @@ interface PreferencesState {
   setCode: (code: string) => void;
   setTitle: (title: string) => void;
   setTheme: (theme: string) => void;
+  setDarkMode: (darkMode: boolean) => void;
   toggleDarkMode: () => void;
+  setBackground: (showBackground: boolean) => void;
   toggleBackground: () => void;
   setLanguage: (language: string) => void;
   setAutoDetectLanguage: (enabled: boolean) => void;
@@ -67,7 +69,9 @@ export const usePreferencesStore = create<PreferencesState>()(
       setCode: (code) => set({ code }),
       setTitle: (title) => set({ title }),
       setTheme: (theme) => set({ theme }),
+      setDarkMode: (darkMode) => set({ darkMode }),
       toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
+      setBackground: (showBackground) => set({ showBackground }),
       toggleBackground: () =>
         set((state) => ({ showBackground: !state.showBackground })),
       setLanguage: (language) => set({ language }),
