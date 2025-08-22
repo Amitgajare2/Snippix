@@ -2,30 +2,48 @@ import { cn } from "@/lib/utils";
 import flourite from "flourite";
 import { codeSnippets, fonts } from "@/options";
 import hljs from "highlight.js";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { usePreferencesStore } from "@/store/use-preferences-store";
 
 export default function CodeEditor() {
   const store = usePreferencesStore();
+  const [isClient, setIsClient] = useState(false);
 
-  // Add random code snippets on mount
+  // Ensure we're on the client side to prevent hydration issues
   useEffect(() => {
-    const randomSnippet =
-      codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
-    usePreferencesStore.setState(randomSnippet);
+    setIsClient(true);
   }, []);
+
+  // Add random code snippets on mount only once
+  useEffect(() => {
+    if (isClient && !store.code) {
+      const randomSnippet =
+        codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+      store.setCode(randomSnippet.code);
+      store.setLanguage(randomSnippet.language);
+    }
+  }, [isClient, store.code, store.setCode, store.setLanguage]);
 
   // Auto Detect Language
   useEffect(() => {
-    if (store.autoDetectLanguage) {
+    if (isClient && store.autoDetectLanguage && store.code) {
       // use flourite to detect language and provide highlighting
       const { language } = flourite(store.code, { noUnknown: true });
-      usePreferencesStore.setState({
-        language: language.toLowerCase() || "plaintext",
-      });
+      store.setLanguage(language.toLowerCase() || "plaintext");
     }
-  }, [store.autoDetectLanguage, store.code]);
+  }, [isClient, store.autoDetectLanguage, store.code, store.setLanguage]);
+
+  // Don't render until we're on the client side
+  if (!isClient) {
+    return (
+      <div className="border-2 rounded-xl shadow-2xl bg-gray-100 animate-pulse">
+        <div className="h-64 flex items-center justify-center">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -46,9 +64,7 @@ export default function CodeEditor() {
           <input
             type="text"
             value={store.title}
-            onChange={(e) =>
-              usePreferencesStore.setState({ title: e.target.value })
-            }
+            onChange={(e) => store.setTitle(e.target.value)}
             spellCheck={false}
             onClick={(e) => {
               if (e.target instanceof HTMLInputElement) {
@@ -68,8 +84,9 @@ export default function CodeEditor() {
         )}
       >
         <Editor
+          key={`editor-${store.language}-${store.fontStyle}`}
           value={store.code}
-          onValueChange={(code) => usePreferencesStore.setState({ code })}
+          onValueChange={(code) => store.setCode(code)}
           highlight={(code) =>
             hljs.highlight(code, { language: store.language || "plaintext" })
               .value
